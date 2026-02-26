@@ -13,7 +13,7 @@ namespace NetCoreForce.Client.Tests
             AuthenticationClient auth = new AuthenticationClient();
 
             FormatException ex = Assert.Throws<FormatException>(() =>
-                auth.UsernamePassword("ClientId", "ClientSecret", "username", "badpassword", "malformed_tokenRequestEndpoint")
+                auth.UsernamePassword("ClientId", "ClientSecret", "malformed_tokenRequestEndpoint")
             );
 
             Assert.Contains("tokenRequestEndpointUrl", ex.Message);
@@ -27,11 +27,11 @@ namespace NetCoreForce.Client.Tests
 
             ArgumentNullException acex = Assert.Throws<ArgumentNullException>(() =>
             {
-                var client = new ForceClient("ClientId", "ClientSecret", "username", "", DefaultTokenRequestEndpoint);
+                var client = new ForceClient("ClientId", "ClientSecret", DefaultTokenRequestEndpoint);
             });
 
             ArgumentNullException fcex = Assert.Throws<ArgumentNullException>(() =>
-                auth.UsernamePassword("ClientId", "ClientSecret", "username", "", DefaultTokenRequestEndpoint)
+                auth.UsernamePassword("ClientId", "ClientSecret", DefaultTokenRequestEndpoint)
             );
 
             Assert.True(fcex.GetType() == acex.GetType());
@@ -43,7 +43,7 @@ namespace NetCoreForce.Client.Tests
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
-                var client = new ForceClient(null, "ClientSecret", "username", "password", DefaultTokenRequestEndpoint);
+                var client = new ForceClient(null, "ClientSecret", DefaultTokenRequestEndpoint);
             });
 
             Assert.Contains("clientid", ex.Message.ToLower());
@@ -54,7 +54,7 @@ namespace NetCoreForce.Client.Tests
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
-                var client = new ForceClient("ClientId", null, "username", "password", DefaultTokenRequestEndpoint);
+                var client = new ForceClient("ClientId", null, DefaultTokenRequestEndpoint);
             });
 
             Assert.Contains("clientsecret", ex.Message.ToLower());
@@ -65,7 +65,7 @@ namespace NetCoreForce.Client.Tests
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
-                var client = new ForceClient("ClientId", "ClientSecret", null, "password", DefaultTokenRequestEndpoint);
+                var client = new ForceClient("ClientId", "ClientSecret", DefaultTokenRequestEndpoint);
             });
 
             Assert.Contains("username", ex.Message.ToLower());
@@ -76,7 +76,7 @@ namespace NetCoreForce.Client.Tests
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
-                var client = new ForceClient("ClientId", "ClientSecret", "username", null, DefaultTokenRequestEndpoint);
+                var client = new ForceClient("ClientId", "ClientSecret", DefaultTokenRequestEndpoint);
             });
 
             Assert.Contains("password", ex.Message.ToLower());

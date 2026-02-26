@@ -25,8 +25,7 @@ namespace NetCoreForce.FunctionalTests
 
             AuthenticationClient auth = new AuthenticationClient();
 
-            await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret,
-                    authInfo.Username, authInfo.Password, authInfo.TokenRequestEndpoint);
+            await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint);
             
             ForceClient client = new ForceClient(auth.AccessInfo.InstanceUrl, auth.ApiVersion, auth.AccessInfo.AccessToken);
 
@@ -52,8 +51,7 @@ namespace NetCoreForce.FunctionalTests
 
             AuthenticationClient auth = new AuthenticationClient();
 
-            auth.UsernamePassword(authInfo.ClientId, authInfo.ClientSecret,
-                    authInfo.Username, authInfo.Password, authInfo.TokenRequestEndpoint);
+            auth.UsernamePassword(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint);
 
             ForceClient client = new ForceClient(auth.AccessInfo.InstanceUrl, auth.ApiVersion, auth.AccessInfo.AccessToken);
 
@@ -69,7 +67,7 @@ namespace NetCoreForce.FunctionalTests
             AuthenticationClient auth = new AuthenticationClient();
 
             ForceAuthException ex = await Assert.ThrowsAsync<ForceAuthException>(
-                async () => await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret, authInfo.Username, "badpassword", authInfo.TokenRequestEndpoint)
+                async () => await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint)
             );
 
             Assert.Equal("invalid_grant", ex.ErrorCode);
@@ -84,7 +82,7 @@ namespace NetCoreForce.FunctionalTests
             AuthenticationClient auth = new AuthenticationClient();
 
             ForceAuthException ex = Assert.Throws<ForceAuthException>(() =>
-                auth.UsernamePassword(authInfo.ClientId, authInfo.ClientSecret, authInfo.Username, "badpassword", authInfo.TokenRequestEndpoint)
+                auth.UsernamePassword(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint)
             );
 
             Assert.Equal("invalid_grant", ex.ErrorCode);

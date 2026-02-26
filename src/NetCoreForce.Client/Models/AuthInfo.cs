@@ -20,18 +20,6 @@ namespace NetCoreForce.Client.Models
         public string ClientSecret { get; set; }
 
         /// <summary>
-        /// Salesforce username
-        /// </summary>
-        [JsonProperty(PropertyName = "username")]
-        public string Username { get; set; }
-
-        /// <summary>
-        /// Salesforce password
-        /// </summary>
-        [JsonProperty(PropertyName = "password")]
-        public string Password { get; set; }
-
-        /// <summary>
         /// Salesforce API version
         /// </summary>
         [JsonProperty(PropertyName = "apiVersion")]

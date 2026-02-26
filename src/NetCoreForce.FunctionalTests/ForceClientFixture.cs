@@ -53,8 +53,7 @@ namespace NetCoreForce.FunctionalTests
                 }
 
                 AuthenticationClient auth = new AuthenticationClient();
-                await auth.UsernamePasswordAsync(AuthInfo.ClientId, AuthInfo.ClientSecret,
-                        AuthInfo.Username, AuthInfo.Password, AuthInfo.TokenRequestEndpoint);
+                await auth.UsernamePasswordAsync(AuthInfo.ClientId, AuthInfo.ClientSecret, AuthInfo.TokenRequestEndpoint);
                 _forceClient = new ForceClient(auth.AccessInfo.InstanceUrl, auth.ApiVersion, auth.AccessInfo.AccessToken, proxyClient);
             }
             return _forceClient;

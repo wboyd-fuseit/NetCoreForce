@@ -43,28 +43,26 @@ namespace NetCoreForce.Client
         }
 
         /// <summary>
-        /// Login to Salesforce using the username-password authentication flow, and initialize the client
+        /// Login to Salesforce using the Client Credentials Flow, and initialize the client
         /// </summary>
         /// <param name="authInfo"></param>
         public ForceClient(AuthInfo authInfo)
-        : this(authInfo.ClientId, authInfo.ClientSecret, authInfo.Username, authInfo.Password, authInfo.TokenRequestEndpoint, authInfo.ApiVersion)
+        : this(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint)
         { }
 
         /// <summary>
-        /// Login to Salesforce using the username-password authentication flow, and initialize the client
+        /// Login to Salesforce using the Client Credentials authentication flow, and initialize the client
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
-        /// <param name="username">Salesforce username</param>
-        /// <param name="password">Salesforce password</param>
         /// <param name="tokenRequestEndpoint">Token request endpoint <para>e.g. https://login.salesforce.com/services/oauth2/token</para></param>
         /// <param name="apiVersion">Salesforce API version</param>
         /// <param name="httpClient">Optional HttpClient object. Defaults to a shared static instance for best performance, but a custom HttpClient can be specified when custom properties are needed e.g. proxy settings.</param>
-        public ForceClient(string clientId, string clientSecret, string username, string password, string tokenRequestEndpoint, string apiVersion = null, HttpClient httpClient = null)
+        public ForceClient(string clientId, string clientSecret, string tokenRequestEndpoint, string apiVersion = null, HttpClient httpClient = null)
         {
             try
             {
-                Login(clientId, clientSecret, username, password, tokenRequestEndpoint, apiVersion, httpClient).Wait();
+                Login(clientId, clientSecret, tokenRequestEndpoint, apiVersion, httpClient).Wait();
             }
             catch (AggregateException ax)
             {
@@ -80,15 +78,15 @@ namespace NetCoreForce.Client
         /// <param name="accessToken">Access token</param>
         /// <param name="httpClient">Optional HttpClient object. Defaults to a shared static instance for best performance, but a custom HttpClient can be specified when custom properties are needed e.g. proxy settings.</param>
         /// <param name="accessInfo">AccessTokenResponse object, to store all of the OAuth details received via the AuthenticationClient</param>
-        public ForceClient(string instanceUrl, string apiVersion, string accessToken, HttpClient httpClient = null, AccessTokenResponse accessInfo = null)
+        public ForceClient(string instanceUrl, string apiVersion, string accessToken, HttpClient httpClient, AccessTokenResponse accessInfo = null)
         {
             Initialize(instanceUrl, apiVersion, accessToken, httpClient, accessInfo);
         }
 
-        private async Task Login(string clientId, string clientSecret, string username, string password, string tokenRequestEndpoint, string apiVersion = null, HttpClient httpClient = null)
+        private async Task Login(string clientId, string clientSecret, string tokenRequestEndpoint, string apiVersion = null, HttpClient httpClient = null)
         {
             AuthenticationClient authClient = new AuthenticationClient(apiVersion, httpClient);
-            await authClient.UsernamePasswordAsync(clientId, clientSecret, username, password, tokenRequestEndpoint).ConfigureAwait(false);
+            await authClient.UsernamePasswordAsync(clientId, clientSecret, tokenRequestEndpoint).ConfigureAwait(false);
 
             Initialize(authClient.AccessInfo.InstanceUrl, authClient.ApiVersion, authClient.AccessInfo.AccessToken, httpClient, authClient.AccessInfo);
         }
@@ -700,6 +698,38 @@ namespace NetCoreForce.Client
 
             return await client.HttpPostAsync<CompositeRequestResponse>(createMultipleRequest, uri, headers);
 
+        }
+
+        /// <summary>
+        /// Execute multiple composite records.
+        /// The list can contain up to 200 objects.
+        /// The list can contain objects of different types, including custom objects.
+        /// </summary>
+        /// <param name="compositeRequest">The composite request</param>
+        /// <param name="customHeaders">Custom headers to include in request (Optional). await The HeaderFormatter helper class can be used to generate the custom header as needed.</param>
+        /// <returns>List of UpdateMultipleResponse objects, includes response for each object (id, success, errors)</returns>
+        /// <exception cref="ForceApiException">Thrown when request fails</exception>
+        public async Task<CompositeRequestResponse> ExecuteCompositeRecords(
+            CompositeRequest compositeRequest,
+            Dictionary<string, string> customHeaders = null)
+        {
+            Dictionary<string, string> headers = new Dictionary<string, string>();
+
+            //Add call options
+            Dictionary<string, string> callOptions = HeaderFormatter.SforceCallOptions(ClientName);
+            headers.AddRange(callOptions);
+
+            //Add custom headers if specified
+            if (customHeaders != null)
+            {
+                headers.AddRange(customHeaders);
+            }
+
+            var uri = UriFormatter.CompositeRequest(InstanceUrl, ApiVersion);
+
+            JsonClient client = new JsonClient(AccessToken, _httpClient);
+
+            return await client.HttpPostAsync<CompositeRequestResponse>(compositeRequest, uri, headers);
         }
 
         /// <summary>

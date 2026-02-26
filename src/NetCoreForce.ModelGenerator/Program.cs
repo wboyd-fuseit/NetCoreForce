@@ -11,12 +11,14 @@ using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
 using NetCoreForce.Client;
 using NetCoreForce.Client.Models;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace NetCoreForce.ModelGenerator
 {
     class Program
     {
+
         const string defaultConfigFilename = "modelgenerator_config.json";
 
         static void Main(string[] args)
@@ -120,16 +122,6 @@ namespace NetCoreForce.ModelGenerator
                         config.AuthInfo.ClientSecret = clientSecretOption.Value();
                     }
 
-                    if (usernameOption.HasValue())
-                    {
-                        config.AuthInfo.Username = usernameOption.Value();
-                    }
-
-                    if (passwordOption.HasValue())
-                    {
-                        config.AuthInfo.Password = passwordOption.Value();
-                    }
-
                     if (customOption.HasValue())
                     {
                         config.IncludeCustom = customOption.HasValue();
@@ -223,19 +215,13 @@ namespace NetCoreForce.ModelGenerator
                 Console.WriteLine();
             }
 
-            while (string.IsNullOrEmpty(config.AuthInfo.Username))
+            while (string.IsNullOrEmpty(config.AuthInfo.RefreshToken))
             {
-                Console.WriteLine("Enter API username:");
-                config.AuthInfo.Username = Console.ReadLine();
+                Console.WriteLine("Enter API Refresh Token:");
+                config.AuthInfo.RefreshToken = Console.ReadLine();
                 Console.WriteLine();
             }
 
-            while (string.IsNullOrEmpty(config.AuthInfo.Password))
-            {
-                Console.WriteLine("Enter API password:");
-                config.AuthInfo.Password = Console.ReadLine();
-                Console.WriteLine();
-            }
 
             //object to generate
             if (config.Objects == null)
@@ -282,7 +268,12 @@ namespace NetCoreForce.ModelGenerator
 
                 Console.WriteLine($"Saving config file to {filePath}");
 
-                string contents = JsonConvert.SerializeObject(config, Formatting.Indented);
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+
+                string contents = JsonSerializer.Serialize(config, options);
 
                 File.WriteAllText(filePath, contents, Encoding.Unicode);
 
@@ -321,7 +312,12 @@ namespace NetCoreForce.ModelGenerator
 
                 string contents = File.ReadAllText(filePath);
 
-                GenConfig config = JsonConvert.DeserializeObject<GenConfig>(contents);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                GenConfig config = JsonSerializer.Deserialize<GenConfig>(contents, options);
 
                 return config;
             }
@@ -338,8 +334,7 @@ namespace NetCoreForce.ModelGenerator
             AuthenticationClient auth = new AuthenticationClient(config.AuthInfo.ApiVersion);
             try
             {
-                await auth.UsernamePasswordAsync(config.AuthInfo.ClientId, config.AuthInfo.ClientSecret,
-                    config.AuthInfo.Username, config.AuthInfo.Password, config.AuthInfo.TokenRequestEndpoint);
+                await auth.TokenRefreshAsync(config.AuthInfo.RefreshToken, config.AuthInfo.ClientId, config.AuthInfo.ClientSecret, config.AuthInfo.TokenRequestEndpoint);
 
                 Console.WriteLine("Connected to Salesforce");
             }
@@ -465,7 +460,7 @@ namespace NetCoreForce.ModelGenerator
             gen.AppendLine("using System;");
             gen.AppendLine("using NetCoreForce.Client.Models;");
             gen.AppendLine("using NetCoreForce.Client.Attributes;");
-            gen.AppendLine("using Newtonsoft.Json;");
+            gen.AppendLine("using System.Text.Json.Serialization;");
             gen.AppendLine();
             if (!string.IsNullOrEmpty(config.ClassNamespace))
             {
@@ -519,7 +514,12 @@ namespace NetCoreForce.ModelGenerator
 
                     gen.AppendLine("\t\t///</summary>");
 
-                    gen.AppendLine(string.Format("\t\t[JsonProperty(PropertyName = \"{0}\")]", JsonName(field.Name)));
+                    gen.AppendLine(string.Format("\t\t[JsonPropertyName(\"{0}\")]", JsonName(field.Name)));
+
+                    if(field.Name.Contains("DateTime"))
+                    {
+                        gen.AppendLine("\t\t[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]");
+                    }
 
                     if (!field.Creatable || !field.Updateable)
                     {
@@ -576,7 +576,7 @@ namespace NetCoreForce.ModelGenerator
                         gen.AppendLine("\t\t/// ReferenceTo: " + field.ReferenceTo[0]);
                         gen.AppendLine("\t\t/// <para>RelationshipName: " + field.RelationshipName + "</para>");
                         gen.AppendLine("\t\t///</summary>");
-                        gen.AppendLine(string.Format("\t\t[JsonProperty(PropertyName = \"{0}\")]", JsonName(field.RelationshipName)));
+                        gen.AppendLine(string.Format("\t\t[JsonPropertyName(\"{0}\")]", JsonName(field.RelationshipName)));
                         gen.AppendLine("\t\t[Updateable(false), Createable(false)]");
 
                         string referenceClass = GetPrefixedSuffixed(config, field.ReferenceTo[0]);

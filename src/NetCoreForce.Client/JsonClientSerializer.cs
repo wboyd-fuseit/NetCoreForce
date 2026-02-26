@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace NetCoreForce.Client
 {
-    public static class JsonSerializer
+    public static class JsonClientSerializer
     {
         /// <summary>
         /// Serializes an object into JSON including all non-null properties.

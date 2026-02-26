@@ -96,7 +96,7 @@ namespace NetCoreForce.Client
             List<string> fieldsToNull = null,
             bool ignoreNulls = true)
         {
-            var json = JsonSerializer.SerializeForCreate(inputObject, fieldsToNull, ignoreNulls);
+            var json = JsonClientSerializer.SerializeForCreate(inputObject, fieldsToNull, ignoreNulls);
 
             var content = new StringContent(json, Encoding.UTF8, JsonMimeType);
 
@@ -135,15 +135,15 @@ namespace NetCoreForce.Client
             string json;
             if (serializeComplete)
             {
-                json = JsonSerializer.SerializeComplete(inputObject, false, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
+                json = JsonClientSerializer.SerializeComplete(inputObject, false, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
             }
             else if (includeSObjectId)
             {
-                json = JsonSerializer.SerializeForUpdateWithObjectId(inputObject, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
+                json = JsonClientSerializer.SerializeForUpdateWithObjectId(inputObject, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
             }
             else
             {
-                json = JsonSerializer.SerializeForUpdate(inputObject, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
+                json = JsonClientSerializer.SerializeForUpdate(inputObject, fieldsToNull: fieldsToNull, ignoreNulls: ignoreNulls);
             }
 
             var content = new StringContent(json, Encoding.UTF8, JsonMimeType);

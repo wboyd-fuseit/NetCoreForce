@@ -55,7 +55,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void SerializeForCreate()
         {
-            string serialized = JsonSerializer.SerializeForCreate(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForCreate(new SampleObject());
 
             Assert.DoesNotContain(IdPropertyTestString, serialized);
             Assert.Contains("noAttributes", serialized);
@@ -66,7 +66,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void SerializeForUpdate()
         {
-            string serialized = JsonSerializer.SerializeForUpdate(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForUpdate(new SampleObject());
 
             Assert.DoesNotContain(IdPropertyTestString, serialized);
             Assert.Contains("noAttributes", serialized);
@@ -77,7 +77,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void SerializeForUpdateWithObjectId()
         {
-            string serialized = JsonSerializer.SerializeForUpdateWithObjectId(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForUpdateWithObjectId(new SampleObject());
 
             Assert.Contains(IdPropertyTestString, serialized);
             Assert.Contains("noAttributes", serialized);
@@ -88,7 +88,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void NullValueHandlingForUpdate()
         {
-            string serialized = JsonSerializer.SerializeForUpdate(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForUpdate(new SampleObject());
 
             Assert.DoesNotContain("nullProperty", serialized);
         }
@@ -96,7 +96,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void NullValueHandlingForUpdateWithObjectId()
         {
-            string serialized = JsonSerializer.SerializeForUpdateWithObjectId(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForUpdateWithObjectId(new SampleObject());
 
             Assert.DoesNotContain("nullProperty", serialized);
         }
@@ -104,7 +104,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void NullValueHandlingForCreate()
         {
-            string serialized = JsonSerializer.SerializeForCreate(new SampleObject());
+            string serialized = JsonClientSerializer.SerializeForCreate(new SampleObject());
 
             Assert.DoesNotContain("nullProperty", serialized);
         }
@@ -113,7 +113,7 @@ namespace NetCoreForce.Client.Tests
         public void NullValueHandling_WithFieldsToNull_ForUpdate()
         {
             List<string> fieldsToNull = new List<string>(){ "nullProperty"};
-            string serialized = JsonSerializer.SerializeForUpdate(new SampleObject(), fieldsToNull);
+            string serialized = JsonClientSerializer.SerializeForUpdate(new SampleObject(), fieldsToNull);
 
             Assert.Contains("nullProperty", serialized);
         }
@@ -121,7 +121,7 @@ namespace NetCoreForce.Client.Tests
         [Fact]
         public void NullValueHandling_WithIgnoreNulls_ForUpdate()
         {
-            string serialized = JsonSerializer.SerializeForUpdate(new SampleObject(), ignoreNulls: false);
+            string serialized = JsonClientSerializer.SerializeForUpdate(new SampleObject(), ignoreNulls: false);
 
             Assert.Contains("nullProperty", serialized);
         }
@@ -130,7 +130,7 @@ namespace NetCoreForce.Client.Tests
         public void NullValueHandling_WithFieldsToNull_MixedCase_ForUpdate()
         {
             List<string> fieldsToNull = new List<string>(){ "NullProPertY"};
-            string serialized = JsonSerializer.SerializeForUpdate(new SampleObject(), fieldsToNull);
+            string serialized = JsonClientSerializer.SerializeForUpdate(new SampleObject(), fieldsToNull);
 
             Assert.Contains("nullProperty", serialized);
         }

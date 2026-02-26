@@ -56,12 +56,10 @@ namespace NetCoreForce.Client
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
-        /// <param name="username">Username</param>
-        /// <param name="password">Password</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public void UsernamePassword(string clientId, string clientSecret, string username, string password)
+        public void UsernamePassword(string clientId, string clientSecret)
         {
-            UsernamePassword(clientId, clientSecret, username, password, TokenRequestEndpointUrl);
+            UsernamePassword(clientId, clientSecret, TokenRequestEndpointUrl);
         }
 
         /// <summary>
@@ -70,15 +68,13 @@ namespace NetCoreForce.Client
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
-        /// <param name="username">Username</param>
-        /// <param name="password">Password</param>
         /// <param name="tokenRequestEndpointUrl">Token request endpoint URL, e.g. https://login.salesforce.com/services/oauth2/token</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public void UsernamePassword(string clientId, string clientSecret, string username, string password, string tokenRequestEndpointUrl)
+        public void UsernamePassword(string clientId, string clientSecret, string tokenRequestEndpointUrl)
         {
             try
             {
-                var task = UsernamePasswordAsync(clientId, clientSecret, username, password, tokenRequestEndpointUrl);
+                var task = UsernamePasswordAsync(clientId, clientSecret, tokenRequestEndpointUrl);
                 task.Wait();
             }
             catch (AggregateException ex)
@@ -101,12 +97,10 @@ namespace NetCoreForce.Client
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
-        /// <param name="username">Username</param>
-        /// <param name="password">Password</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public Task UsernamePasswordAsync(string clientId, string clientSecret, string username, string password)
+        public Task UsernamePasswordAsync(string clientId, string clientSecret)
         {
-            return UsernamePasswordAsync(clientId, clientSecret, username, password, TokenRequestEndpointUrl);
+            return UsernamePasswordAsync(clientId, clientSecret, TokenRequestEndpointUrl);
         }
 
         /// <summary>
@@ -114,11 +108,9 @@ namespace NetCoreForce.Client
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
-        /// <param name="username">Username</param>
-        /// <param name="password">Password</param>
         /// <param name="tokenRequestEndpointUrl">Token request endpoint URL, e.g. https://login.salesforce.com/services/oauth2/token</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public async Task UsernamePasswordAsync(string clientId, string clientSecret, string username, string password, string tokenRequestEndpointUrl)
+        public async Task UsernamePasswordAsync(string clientId, string clientSecret, string tokenRequestEndpointUrl)
         {
 #if DEBUG
             Stopwatch sw = new Stopwatch();
@@ -126,18 +118,14 @@ namespace NetCoreForce.Client
 #endif
             if (string.IsNullOrEmpty(clientId)) throw new ArgumentNullException("clientId", "Client ID is null or empty");
             if (string.IsNullOrEmpty(clientSecret)) throw new ArgumentNullException("clientSecret", "Client Secret is null or empty");
-            if (string.IsNullOrEmpty(username)) throw new ArgumentNullException("username", "Username is null or empty");
-            if (string.IsNullOrEmpty(password)) throw new ArgumentNullException("password", "Password is null or empty");
             if (string.IsNullOrEmpty(tokenRequestEndpointUrl)) throw new ArgumentNullException("tokenRequestEndpointUrl", "Token Request Endpoint is null or empty");
             if (!Uri.IsWellFormedUriString(tokenRequestEndpointUrl, UriKind.Absolute)) throw new FormatException("Invalid tokenRequestEndpointUrl");
 
             var content = new FormUrlEncodedContent(new[]
                 {
-                    new KeyValuePair<string, string>("grant_type", "password"),
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
                     new KeyValuePair<string, string>("client_id", clientId),
-                    new KeyValuePair<string, string>("client_secret", clientSecret),
-                    new KeyValuePair<string, string>("username", username),
-                    new KeyValuePair<string, string>("password", password)
+                    new KeyValuePair<string, string>("client_secret", clientSecret)
                 });
 
             var request = new HttpRequestMessage

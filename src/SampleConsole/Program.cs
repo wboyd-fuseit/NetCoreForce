@@ -37,7 +37,7 @@ namespace SampleConsole
 
             try
             {
-                await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret, authInfo.Username, authInfo.Password, authInfo.TokenRequestEndpoint);
+                await auth.UsernamePasswordAsync(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint);
                 Console.WriteLine("Successfully connected to Salesforce");
             }
             catch (ForceAuthException ex)

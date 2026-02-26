@@ -23,7 +23,7 @@ namespace NetCoreForce.Client.Tests
         {
             TestObject obj = new TestObject() { DateProp = _dto };
 
-            string serialized = JsonSerializer.SerializeComplete(obj, false);
+            string serialized = JsonClientSerializer.SerializeComplete(obj, false);
 
             Assert.Contains(_expectedDate, serialized);
         }
