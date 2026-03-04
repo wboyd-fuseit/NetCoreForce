@@ -29,6 +29,14 @@
     <PackageOutputPath>$(SolutionDir)/packages</PackageOutputPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0|AnyCPU'">
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+
   <!-- Adds async support for .NET Standard 2.0, .NET Framework, and .NET Core < 3.0 -->
   <ItemGroup Condition=" $(TargetFramework) == 'netstandard2.0' OR $(TargetFramework.StartsWith('net4')) ">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.6" />
@@ -59,5 +67,9 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(TargetDir)*.*&quot; &quot;D:\Development\ECM4S\ECM4S-Server-App\References&quot; /Y /D&#xA;" />
+  </Target>
 
 </Project>

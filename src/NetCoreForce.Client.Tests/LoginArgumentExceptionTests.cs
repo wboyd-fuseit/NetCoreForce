@@ -13,7 +13,7 @@ namespace NetCoreForce.Client.Tests
             AuthenticationClient auth = new AuthenticationClient();
 
             FormatException ex = Assert.Throws<FormatException>(() =>
-                auth.UsernamePassword("ClientId", "ClientSecret", "malformed_tokenRequestEndpoint")
+                auth.ClientCreadentialsFlow("ClientId", "ClientSecret", "malformed_tokenRequestEndpoint")
             );
 
             Assert.Contains("tokenRequestEndpointUrl", ex.Message);
@@ -31,7 +31,7 @@ namespace NetCoreForce.Client.Tests
             });
 
             ArgumentNullException fcex = Assert.Throws<ArgumentNullException>(() =>
-                auth.UsernamePassword("ClientId", "ClientSecret", DefaultTokenRequestEndpoint)
+                auth.ClientCreadentialsFlow("ClientId", "ClientSecret", DefaultTokenRequestEndpoint)
             );
 
             Assert.True(fcex.GetType() == acex.GetType());

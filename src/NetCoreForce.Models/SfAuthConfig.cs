@@ -159,7 +159,7 @@ namespace NetCoreForce.Models
 		public string Url { get; set; }
 
 		///<summary>
-		/// UsernamePassword
+		/// ClientCredentials
 		/// <para>Name: AuthOptionsUsernamePassword</para>
 		/// <para>SF Type: boolean</para>
 		/// <para>Nillable: False</para>

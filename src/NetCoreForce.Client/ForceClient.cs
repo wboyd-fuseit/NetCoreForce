@@ -48,7 +48,17 @@ namespace NetCoreForce.Client
         /// <param name="authInfo"></param>
         public ForceClient(AuthInfo authInfo)
         : this(authInfo.ClientId, authInfo.ClientSecret, authInfo.TokenRequestEndpoint)
-        { }
+        {
+        }
+
+        /// <summary>
+        /// Login to Salesforce using the Client Credentials Flow, and initialize the client
+        /// </summary>
+        /// <param name="clientInfo"></param>
+        public ForceClient(AuthenticationClient clientInfo)
+        {
+            Initialize(clientInfo.AccessInfo.InstanceUrl, clientInfo.ApiVersion, clientInfo.AccessInfo.AccessToken);
+        }
 
         /// <summary>
         /// Login to Salesforce using the Client Credentials authentication flow, and initialize the client
@@ -62,7 +72,15 @@ namespace NetCoreForce.Client
         {
             try
             {
-                Login(clientId, clientSecret, tokenRequestEndpoint, apiVersion, httpClient).Wait();
+                if (clientId.StartsWith("https://"))
+                {
+                    Initialize(clientId, clientSecret, tokenRequestEndpoint);
+                }
+                else
+                {
+                    Login(clientId, clientSecret, tokenRequestEndpoint, apiVersion, httpClient).Wait();
+                }
+                
             }
             catch (AggregateException ax)
             {
@@ -86,7 +104,7 @@ namespace NetCoreForce.Client
         private async Task Login(string clientId, string clientSecret, string tokenRequestEndpoint, string apiVersion = null, HttpClient httpClient = null)
         {
             AuthenticationClient authClient = new AuthenticationClient(apiVersion, httpClient);
-            await authClient.UsernamePasswordAsync(clientId, clientSecret, tokenRequestEndpoint).ConfigureAwait(false);
+            await authClient.ClientCreadentialsFlowAsync(clientId, clientSecret, tokenRequestEndpoint).ConfigureAwait(false);
 
             Initialize(authClient.AccessInfo.InstanceUrl, authClient.ApiVersion, authClient.AccessInfo.AccessToken, httpClient, authClient.AccessInfo);
         }

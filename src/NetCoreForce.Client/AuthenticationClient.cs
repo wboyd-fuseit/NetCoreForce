@@ -51,30 +51,30 @@ namespace NetCoreForce.Client
         }
 
         /// <summary>
-        /// Authenticate using the "Username and Password" auth flow, synchronously
+        /// Authenticate using the "Client ID and Client Secret" auth flow, synchronously
         /// <para>Uses a default Token request endpoint URL: https://login.salesforce.com/services/oauth2/token</para>
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public void UsernamePassword(string clientId, string clientSecret)
+        public void ClientCredentials(string clientId, string clientSecret)
         {
-            UsernamePassword(clientId, clientSecret, TokenRequestEndpointUrl);
+            ClientCreadentialsFlow(clientId, clientSecret, TokenRequestEndpointUrl);
         }
 
         /// <summary>
-        /// Authenticate using the "Username and Password" auth flow, synchronously
+        /// Authenticate using the "Client ID and Client Secret" auth flow, synchronously
         /// <para>Uses a default Token request endpoint URL: https://login.salesforce.com/services/oauth2/token</para>
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
         /// <param name="tokenRequestEndpointUrl">Token request endpoint URL, e.g. https://login.salesforce.com/services/oauth2/token</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public void UsernamePassword(string clientId, string clientSecret, string tokenRequestEndpointUrl)
+        public void ClientCreadentialsFlow(string clientId, string clientSecret, string tokenRequestEndpointUrl)
         {
             try
             {
-                var task = UsernamePasswordAsync(clientId, clientSecret, tokenRequestEndpointUrl);
+                var task = ClientCreadentialsFlowAsync(clientId, clientSecret, tokenRequestEndpointUrl);
                 task.Wait();
             }
             catch (AggregateException ex)
@@ -92,25 +92,25 @@ namespace NetCoreForce.Client
         }
 
         /// <summary>
-        /// Authenticate using the "Username and Password" auth flow
+        /// Authenticate using the "Client ID and Client Secret" auth flow
         /// <para>Uses a default Token request endpoint URL: https://login.salesforce.com/services/oauth2/token</para>
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public Task UsernamePasswordAsync(string clientId, string clientSecret)
+        public Task ClientCreadentialsFlowAsync(string clientId, string clientSecret)
         {
-            return UsernamePasswordAsync(clientId, clientSecret, TokenRequestEndpointUrl);
+            return ClientCreadentialsFlowAsync(clientId, clientSecret, TokenRequestEndpointUrl);
         }
 
         /// <summary>
-        /// Authenticate using the "Username and Password" auth flow
+        /// Authenticate using the "Client ID and Client Secret" auth flow
         /// </summary>
         /// <param name="clientId">Client ID, a.k.a. Consumer Key</param>
         /// <param name="clientSecret">Client Secret, a.k.a. Consumer Secret</param>
         /// <param name="tokenRequestEndpointUrl">Token request endpoint URL, e.g. https://login.salesforce.com/services/oauth2/token</param>
         /// <exception cref="ForceAuthException">Thrown if the authentication fails</exception>
-        public async Task UsernamePasswordAsync(string clientId, string clientSecret, string tokenRequestEndpointUrl)
+        public async Task ClientCreadentialsFlowAsync(string clientId, string clientSecret, string tokenRequestEndpointUrl)
         {
 #if DEBUG
             Stopwatch sw = new Stopwatch();
@@ -128,10 +128,13 @@ namespace NetCoreForce.Client
                     new KeyValuePair<string, string>("client_secret", clientSecret)
                 });
 
+            Uri uriAddress = new Uri(tokenRequestEndpointUrl);
+            //Uri uriOrg = new Uri(uriAddress.GetLeftPart(UriPartial.Authority));
+
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri(tokenRequestEndpointUrl),
+                RequestUri = uriAddress,
                 Content = content
             };
 

@@ -1,6 +1,7 @@
-using System;
-using Newtonsoft.Json;
 using NetCoreForce.Client.Serializer;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
 using System.Collections.Generic;
 
 namespace NetCoreForce.Client
@@ -24,14 +25,18 @@ namespace NetCoreForce.Client
                 formatting = Formatting.Indented;
             }
 
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
+                ContractResolver = new NullableContractResolver(fieldsToNull),
+                DateFormatString = DateFormats.FullDateFormatString
+            };
+
+            jsonSerializerSettings.Converters.Add(new StringEnumConverter());
+
             string serializedJson = JsonConvert.SerializeObject(inputObject,
                    formatting,
-                   new JsonSerializerSettings
-                   {
-                       NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
-                       ContractResolver = new NullableContractResolver(fieldsToNull),
-                       DateFormatString = DateFormats.FullDateFormatString
-                   });
+                   jsonSerializerSettings);
 
             return serializedJson;
         }
@@ -45,14 +50,18 @@ namespace NetCoreForce.Client
         /// <returns></returns>
         public static string SerializeForUpdate(object inputObject, List<string> fieldsToNull = null, bool ignoreNulls = true)
         {
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
+                ContractResolver = new UpdateableContractResolver(fieldsToNull),
+                DateFormatString = DateFormats.FullDateFormatString
+            };
+
+            jsonSerializerSettings.Converters.Add(new StringEnumConverter());
+
             string serializedJson = JsonConvert.SerializeObject(inputObject,
                    Formatting.None,
-                   new JsonSerializerSettings
-                   {
-                       NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
-                       ContractResolver = new UpdateableContractResolver(fieldsToNull),
-                       DateFormatString = DateFormats.FullDateFormatString
-                   });
+                   jsonSerializerSettings);
 
             return serializedJson;
         }
@@ -67,14 +76,18 @@ namespace NetCoreForce.Client
         /// <returns>JSON string, unformatted</returns>
         public static string SerializeForUpdateWithObjectId(object inputObject, List<string> fieldsToNull = null, bool ignoreNulls = true)
         {
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
+                ContractResolver = new UpdateableWithIdContractResolver(fieldsToNull),
+                DateFormatString = DateFormats.FullDateFormatString
+            };
+
+            jsonSerializerSettings.Converters.Add(new StringEnumConverter());
+
             string serializedJson = JsonConvert.SerializeObject(inputObject,
                    Formatting.None,
-                   new JsonSerializerSettings
-                   {
-                       NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
-                       ContractResolver = new UpdateableWithIdContractResolver(fieldsToNull),
-                       DateFormatString = DateFormats.FullDateFormatString
-                   });
+                   jsonSerializerSettings);
 
             return serializedJson;
         }
@@ -88,14 +101,17 @@ namespace NetCoreForce.Client
         /// <returns>JSON string, unformatted</returns>
         public static string SerializeForCreate(object inputObject, List<string> fieldsToNull = null, bool ignoreNulls = true)
         {
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
+                ContractResolver = new CreateableContractResolver(fieldsToNull),
+                DateFormatString = DateFormats.FullDateFormatString
+            };
+
+            jsonSerializerSettings.Converters.Add(new StringEnumConverter());
+
             string serializedJson = JsonConvert.SerializeObject(inputObject,
-                   Formatting.None,
-                   new JsonSerializerSettings
-                   {
-                       NullValueHandling = ignoreNulls ? NullValueHandling.Ignore : NullValueHandling.Include,
-                       ContractResolver = new CreateableContractResolver(fieldsToNull),
-                       DateFormatString = DateFormats.FullDateFormatString
-                   });
+                   Formatting.None, jsonSerializerSettings);
 
             return serializedJson;
         }
