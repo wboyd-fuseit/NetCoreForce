@@ -1,18 +1,19 @@
+using NetCoreForce.Client.Models;
+using NetCoreForce.Client.Serializer;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using NetCoreForce.Client.Serializer;
-using NetCoreForce.Client.Models;
 
 namespace NetCoreForce.Client
 {
@@ -28,6 +29,7 @@ namespace NetCoreForce.Client
         //Alternatively, for testing and special cases, a class instance instnace of an HttpClient can be used instead.
         private static readonly HttpClient _SharedHttpClient;
         private HttpClient _httpClient;
+        private readonly JsonSerializerSettings _serializerSettings;
         private HttpClient SharedHttpClient
         {
             get
@@ -53,14 +55,58 @@ namespace NetCoreForce.Client
         /// </summary>
         /// <param name="accessToken">API Access token</param>
         /// <param name="httpClient">Optional custom HttpClient. Ideally this should be a shared static instance for best performance.</param>
-        public JsonClient(string accessToken, HttpClient httpClient = null)
+        public JsonClient(string accessToken, HttpClient httpClient = null, JsonSerializerSettings serializerSettings = null)
         {
             _authHeaderValue = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            _serializerSettings = serializerSettings ?? new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            };
 
             if (httpClient != null)
             {
                 _httpClient = httpClient;
             }
+        }
+
+        /// <summary>
+        /// HTTP JSON Request
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="method"></param>
+        /// <param name="url"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public async Task<T> SendJsonAsync<T>(HttpMethod method, string url, object body = null)
+        {
+            using var request = new HttpRequestMessage(method, url);
+
+            // Serialize body if present
+            if (body != null)
+            {
+                var json = JsonConvert.SerializeObject(body, _serializerSettings);
+                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            }
+
+            using var response = await _httpClient.SendAsync(request)
+                                                  .ConfigureAwait(false);
+
+            var responseContent = await response.Content.ReadAsStringAsync()
+                                                        .ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Match existing NetCoreForce error pattern
+                throw new Exception(responseContent);
+            }
+
+            // Handle empty responses (e.g. 204 No Content)
+            if (string.IsNullOrWhiteSpace(responseContent))
+                return default;
+
+            return JsonConvert.DeserializeObject<T>(responseContent, _serializerSettings);
         }
 
         /// <summary>

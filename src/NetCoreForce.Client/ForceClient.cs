@@ -1,5 +1,4 @@
-﻿using NetCoreForce.Client.Enumerations;
-using NetCoreForce.Client.Models;
+﻿using NetCoreForce.Client.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -655,100 +654,263 @@ namespace NetCoreForce.Client
         }
 
         /// <summary>
-        /// Execute multiple composite records.
-        /// The list can contain up to 200 objects.
-        /// The list can contain objects of different types, including custom objects.
-        /// Each object must contain an attributes map. The map must contain a value for type.
+        /// Map response to ordered list from request
         /// </summary>
-        /// <param name="sObjects">Objects to update</param>
-        /// <param name="allOrNone">Optional. Indicates whether to roll back the entire request when the update of any object fails (true) or to continue with the independent update of other objects in the request. The default is false.</param>
-        /// <param name="collateSubrequests">Optional. Controls whether the API collates unrelated subrequests to bulkify them (true) or not (false). When subrequests are collated, the processing speed is faster, but the order of execution is not guaranteed (unless there is an explicit dependency between the subrequests).If collation is disabled, then the subrequests are executed in the order in which they are received. The default is true.</param>
-        /// <param name="customHeaders">Custom headers to include in request (Optional). await The HeaderFormatter helper class can be used to generate the custom header as needed.</param>
-        /// <returns>List of UpdateMultipleResponse objects, includes response for each object (id, success, errors)</returns>
-        /// <exception cref="ArgumentException">Thrown when missing required information</exception>
-        /// <exception cref="ForceApiException">Thrown when update fails</exception>
-        public async Task<CompositeRequestResponse> ExecuteCompositeRecords(
-            List<CompositeSObject> sObjects,
-            bool allOrNone = false,
-            bool collateSubrequests = true,
-            Dictionary<string, string> customHeaders = null)
+        /// <typeparam name="T"></typeparam>
+        /// <param name="response"></param>
+        /// <param name="originalRecords"></param>
+        /// <returns></returns>
+        private CompositeResult<T> MapCompositeResult<T>(CompositeResponse response, IList<T> originalRecords) where T : SObject
         {
-            if (sObjects == null)
-            {
-                throw new ArgumentNullException("sObjects");
-            }
+            var result = new CompositeResult<T>();
 
-            foreach (CompositeSObject s in sObjects)
+            // Salesforce returns responses in the same order as requests
+            for (int i = 0; i < response.CompositeResponseItems.Count; i++)
             {
-                if (s == null || (string.IsNullOrEmpty(s.Type) && s.CompositeType == CompositeType.SObject))
+                result.Items.Add(new CompositeResultItem<T>
                 {
-                    throw new ForceApiException("Objects are missing Type property in Attributes map");
-                }
+                    OriginalRecord = originalRecords[i],
+                    Response = response.CompositeResponseItems[i]
+                });
             }
 
-            Dictionary<string, string> headers = new Dictionary<string, string>();
+            return result;
+        }
 
-            //Add call options
-            Dictionary<string, string> callOptions = HeaderFormatter.SforceCallOptions(ClientName);
-            headers.AddRange(callOptions);
 
-            //Add custom headers if specified
-            if (customHeaders != null)
-            {
-                headers.AddRange(customHeaders);
-            }
+        /// <summary>
+        /// Wrapper method for HTTPClient JSON Request
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="method"></param>
+        /// <param name="url"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        private Task<T> HttpRequestJsonAsync<T>(HttpMethod method, string url, object body = null)
+        {
+            JsonClient client = new JsonClient(AccessToken, SharedHttpClient);
 
-            var uri = UriFormatter.CompositeRequest(InstanceUrl, ApiVersion);
-
-            JsonClient client = new JsonClient(AccessToken, _httpClient);
-
-            List<CompositeSubRequest> subRequests = sObjects.Select(s =>
-            {
-                return new CompositeSubRequest(
-                    s.SObject,
-                    s.Method == CompositeMethod.Write ? string.IsNullOrWhiteSpace(s.Id) ? "POST" : "PATCH" : s.Method == CompositeMethod.Delete ? "DELETE" : "GET",
-                    s.ReferenceId,
-                    s.CompositeType == CompositeType.SObject ? UriFormatter.CompositeSubRequest(ApiVersion, s.Type, s.Id) : UriFormatter.CompositeSObjectCollectionsSubRequest(ApiVersion)
-                );
-            }).ToList();
-
-            CompositeRequest createMultipleRequest = new CompositeRequest(subRequests, allOrNone, collateSubrequests);
-
-            return await client.HttpPostAsync<CompositeRequestResponse>(createMultipleRequest, uri, headers);
-
+            return client.SendJsonAsync<T>(method, url, body);
         }
 
         /// <summary>
-        /// Execute multiple composite records.
-        /// The list can contain up to 200 objects.
-        /// The list can contain objects of different types, including custom objects.
+        /// Base method for composite HTTP requests
         /// </summary>
-        /// <param name="compositeRequest">The composite request</param>
-        /// <param name="customHeaders">Custom headers to include in request (Optional). await The HeaderFormatter helper class can be used to generate the custom header as needed.</param>
-        /// <returns>List of UpdateMultipleResponse objects, includes response for each object (id, success, errors)</returns>
-        /// <exception cref="ForceApiException">Thrown when request fails</exception>
-        public async Task<CompositeRequestResponse> ExecuteCompositeRecords(
-            CompositeRequest compositeRequest,
-            Dictionary<string, string> customHeaders = null)
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public async Task<CompositeResponse> CompositeAsync(CompositeRequest request)
         {
-            Dictionary<string, string> headers = new Dictionary<string, string>();
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
 
-            //Add call options
-            Dictionary<string, string> callOptions = HeaderFormatter.SforceCallOptions(ClientName);
-            headers.AddRange(callOptions);
+            var url = $"{InstanceUrl}/services/data/{ApiVersion}/composite";
 
-            //Add custom headers if specified
-            if (customHeaders != null)
+            // Reuse the existing authenticated request pipeline
+            return await HttpRequestJsonAsync<CompositeResponse>(HttpMethod.Post, url, request);
+        }
+
+        /// <summary>
+        /// Insert multiple records
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objectName"></param>
+        /// <param name="records"></param>
+        /// <param name="allOrNone"></param>
+        /// <returns></returns>
+        public async Task<CompositeResult<T>> InsertManyAsync<T>(string objectName, IEnumerable<T> records, bool allOrNone = false) where T : SObject
+        {
+            var list = records.ToList();
+
+            var request = new CompositeRequest
             {
-                headers.AddRange(customHeaders);
+                AllOrNone = allOrNone
+            };
+
+            int index = 0;
+            foreach (var record in list)
+            {
+                request.CompositeRequests.Add(new CompositeSubRequest
+                {
+                    Method = "POST",
+                    Url = $"/services/data/{ApiVersion}/sobjects/{objectName}",
+                    ReferenceId = $"ref{index++}",
+                    Body = record
+                });
             }
 
-            var uri = UriFormatter.CompositeRequest(InstanceUrl, ApiVersion);
+            var response = await CompositeAsync(request);
 
-            JsonClient client = new JsonClient(AccessToken, _httpClient);
-
-            return await client.HttpPostAsync<CompositeRequestResponse>(compositeRequest, uri, headers);
+            return MapCompositeResult(response, list);
         }
+
+        /// <summary>
+        /// Update multiple records
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objectName"></param>
+        /// <param name="records"></param>
+        /// <param name="allOrNone"></param>
+        /// <returns></returns>
+        public async Task<CompositeResult<T>> UpdateManyAsync<T>(string objectName, IEnumerable<(string Id, T Record)> records, bool allOrNone = false) where T : SObject
+        {
+            var recordList = records.Select(r => r.Record).ToList();
+
+            var request = new CompositeRequest
+            {
+                AllOrNone = allOrNone
+            };
+
+            int index = 0;
+            foreach (var item in records)
+            {
+                request.CompositeRequests.Add(new CompositeSubRequest
+                {
+                    Method = "PATCH",
+                    Url = $"/services/data/{ApiVersion}/sobjects/{objectName}/{item.Id}",
+                    ReferenceId = $"ref{index++}",
+                    Body = item.Record
+                });
+            }
+
+            var response = await CompositeAsync(request);
+
+            return MapCompositeResult(response, recordList);
+        }
+
+        /// <summary>
+        /// Upsert multiple records of the same type with unique field
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objectName"></param>
+        /// <param name="externalIdField"></param>
+        /// <param name="records"></param>
+        /// <param name="allOrNone"></param>
+        /// <returns></returns>
+        public async Task<CompositeResult<T>> UpsertManyAsync<T>(string objectName, string externalIdField, IEnumerable<(string ExternalId, T Record)> records, bool allOrNone = false) where T : SObject
+        {
+            var recordList = records.Select(r => r.Record).ToList();
+
+            var request = new CompositeRequest
+            {
+                AllOrNone = allOrNone
+            };
+
+            int index = 0;
+            foreach (var item in records)
+            {
+                request.CompositeRequests.Add(new CompositeSubRequest
+                {
+                    Method = "PATCH",
+                    Url = $"/services/data/{ApiVersion}/sobjects/{objectName}/{externalIdField}/{Uri.EscapeDataString(item.ExternalId)}",
+                    ReferenceId = $"ref{index++}",
+                    Body = item.Record
+                });
+            }
+
+            var response = await CompositeAsync(request);
+
+            return MapCompositeResult(response, recordList);
+        }
+
+
+
+
+        ///// <summary>
+        ///// Execute multiple composite records.
+        ///// The list can contain up to 200 objects.
+        ///// The list can contain objects of different types, including custom objects.
+        ///// Each object must contain an attributes map. The map must contain a value for type.
+        ///// </summary>
+        ///// <param name="sObjects">Objects to update</param>
+        ///// <param name="allOrNone">Optional. Indicates whether to roll back the entire request when the update of any object fails (true) or to continue with the independent update of other objects in the request. The default is false.</param>
+        ///// <param name="collateSubrequests">Optional. Controls whether the API collates unrelated subrequests to bulkify them (true) or not (false). When subrequests are collated, the processing speed is faster, but the order of execution is not guaranteed (unless there is an explicit dependency between the subrequests).If collation is disabled, then the subrequests are executed in the order in which they are received. The default is true.</param>
+        ///// <param name="customHeaders">Custom headers to include in request (Optional). await The HeaderFormatter helper class can be used to generate the custom header as needed.</param>
+        ///// <returns>List of UpdateMultipleResponse objects, includes response for each object (id, success, errors)</returns>
+        ///// <exception cref="ArgumentException">Thrown when missing required information</exception>
+        ///// <exception cref="ForceApiException">Thrown when update fails</exception>
+        //public async Task<CompositeRequestResponse> ExecuteCompositeRecords(
+        //    List<CompositeSObject> sObjects,
+        //    bool allOrNone = false,
+        //    bool collateSubrequests = true,
+        //    Dictionary<string, string> customHeaders = null)
+        //{
+        //    if (sObjects == null)
+        //    {
+        //        throw new ArgumentNullException("sObjects");
+        //    }
+
+        //    foreach (CompositeSObject s in sObjects)
+        //    {
+        //        if (s == null || (string.IsNullOrEmpty(s.Type) && s.CompositeType == CompositeType.SObject))
+        //        {
+        //            throw new ForceApiException("Objects are missing Type property in Attributes map");
+        //        }
+        //    }
+
+        //    Dictionary<string, string> headers = new Dictionary<string, string>();
+
+        //    //Add call options
+        //    Dictionary<string, string> callOptions = HeaderFormatter.SforceCallOptions(ClientName);
+        //    headers.AddRange(callOptions);
+
+        //    //Add custom headers if specified
+        //    if (customHeaders != null)
+        //    {
+        //        headers.AddRange(customHeaders);
+        //    }
+
+        //    var uri = UriFormatter.CompositeRequest(InstanceUrl, ApiVersion);
+
+        //    JsonClient client = new JsonClient(AccessToken, _httpClient);
+
+        //    List<CompositeSubRequest> subRequests = sObjects.Select(s =>
+        //    {
+        //        return new CompositeSubRequest(
+        //            s.SObject,
+        //            s.Method == CompositeMethod.Write ? string.IsNullOrWhiteSpace(s.Id) ? "POST" : "PATCH" : s.Method == CompositeMethod.Delete ? "DELETE" : "GET",
+        //            s.ReferenceId,
+        //            s.CompositeType == CompositeType.SObject ? UriFormatter.CompositeSubRequest(ApiVersion, s.Type, s.Id) : UriFormatter.CompositeSObjectCollectionsSubRequest(ApiVersion)
+        //        );
+        //    }).ToList();
+
+        //    CompositeRequest createMultipleRequest = new CompositeRequest(subRequests, allOrNone, collateSubrequests);
+
+        //    return await client.HttpPostAsync<CompositeRequestResponse>(createMultipleRequest, uri, headers);
+
+        //}
+
+        ///// <summary>
+        ///// Execute multiple composite records.
+        ///// The list can contain up to 200 objects.
+        ///// The list can contain objects of different types, including custom objects.
+        ///// </summary>
+        ///// <param name="compositeRequest">The composite request</param>
+        ///// <param name="customHeaders">Custom headers to include in request (Optional). await The HeaderFormatter helper class can be used to generate the custom header as needed.</param>
+        ///// <returns>List of UpdateMultipleResponse objects, includes response for each object (id, success, errors)</returns>
+        ///// <exception cref="ForceApiException">Thrown when request fails</exception>
+        //public async Task<CompositeRequestResponse> ExecuteCompositeRecords(
+        //    CompositeRequest compositeRequest,
+        //    Dictionary<string, string> customHeaders = null)
+        //{
+        //    Dictionary<string, string> headers = new Dictionary<string, string>();
+
+        //    //Add call options
+        //    Dictionary<string, string> callOptions = HeaderFormatter.SforceCallOptions(ClientName);
+        //    headers.AddRange(callOptions);
+
+        //    //Add custom headers if specified
+        //    if (customHeaders != null)
+        //    {
+        //        headers.AddRange(customHeaders);
+        //    }
+
+        //    var uri = UriFormatter.CompositeRequest(InstanceUrl, ApiVersion);
+
+        //    JsonClient client = new JsonClient(AccessToken, _httpClient);
+
+        //    return await client.HttpPostAsync<CompositeRequestResponse>(compositeRequest, uri, headers);
+        //}
 
         /// <summary>
         /// Execute request against ApexRest custom endpoints.
@@ -811,6 +973,21 @@ namespace NetCoreForce.Client
             string blobField = match.Groups[3].Value;
 
             return await BlobRetrieveStream(sObjectTypeName, objectId, blobField).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Get the Attachment Body for ContentVersion VersionData as a Byte array
+        /// </summary>
+        /// <param name="sObjectTypeName"></param>
+        /// <param name="objectId"></param>
+        /// <param name="blobField"></param>
+        /// <returns></returns>
+        public async Task<byte[]> ByteArrayRetrieveStream(string sObjectTypeName, string objectId, string blobField)
+        {
+            var streamTask = await BlobRetrieveStream(sObjectTypeName, objectId, blobField);
+            using var memoryStream = new MemoryStream();
+            await streamTask.CopyToAsync(memoryStream).ConfigureAwait(false);
+            return memoryStream.ToArray();
         }
 
         public async Task<Stream> BlobRetrieveStream(string sObjectTypeName, string objectId, string blobField)

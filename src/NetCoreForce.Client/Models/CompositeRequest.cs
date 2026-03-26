@@ -18,11 +18,13 @@ namespace NetCoreForce.Client.Models
             CollateSubrequests = collateSubrequests;
         }
 
+        public CompositeRequest() { }
+
         /// <summary>
         /// Required. A list of Composite Sub Requests
         /// </summary>
         [JsonProperty(PropertyName = "compositeRequest")]
-        public List<CompositeSubRequest> CompositeRequests { get; set; }
+        public List<CompositeSubRequest> CompositeRequests { get; set; } = new List<CompositeSubRequest>();
 
         /// <summary>
         /// Optional. Indicates whether to roll back the entire request when the update of any object fails (true) or

@@ -19,6 +19,8 @@ namespace NetCoreForce.Client.Models
             Url = url;
         }
 
+        public CompositeSubRequest() {}
+
         [JsonProperty(PropertyName = "body")]
         public SObject Body { get; set; }
 

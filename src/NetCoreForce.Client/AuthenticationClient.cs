@@ -1,10 +1,12 @@
-using NetCoreForce.Client.Models;
+﻿using NetCoreForce.Client.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace NetCoreForce.Client
@@ -13,6 +15,7 @@ namespace NetCoreForce.Client
     {
         private string DefaultApiVersion { get { return "v64.0"; } }
         public string ApiVersion { get; set; }
+
 
         /// <summary>
         /// The access token response from a successful authentication.
@@ -24,6 +27,9 @@ namespace NetCoreForce.Client
         private const string IntrospectTokenEndpointUrl = "https://login.salesforce.com/services/oauth2/introspect";
         private const string TokenRequestEndpointUrl = "https://login.salesforce.com/services/oauth2/token";
         private readonly HttpClient _httpClient;
+
+        private string _codeVerifier { get; set; }
+        private string _codeChallenge { get; set; }
 
         /// <summary>
         /// Initialize the AuthenticationClient with the libary's default Salesforce API version, and default HttpClient
@@ -48,6 +54,38 @@ namespace NetCoreForce.Client
             }
 
             _httpClient = httpClient ?? new HttpClient();
+
+            _codeVerifier = GenerateCodeVerifier();
+            _codeChallenge = GenerateCodeChallenge(_codeVerifier);
+        }
+
+        /// <summary>
+        /// Required only if a code_challenge parameter was specified in the authorization request
+        /// </summary>
+        /// <returns></returns>
+        private string GenerateCodeVerifier()
+        {
+            // 43–128 chars, high‑entropy, URL‑safe
+            var bytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(bytes)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", "");
+        }
+
+        /// <summary>
+        /// Specifies the SHA256 hash value of the code_verifier value in the token request
+        /// </summary>
+        /// <param name="verifier"></param>
+        /// <returns></returns>
+        private string GenerateCodeChallenge(string verifier)
+        {
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(verifier));
+            return Convert.ToBase64String(hash)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", "");
         }
 
         /// <summary>
@@ -120,12 +158,14 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(clientSecret)) throw new ArgumentNullException("clientSecret", "Client Secret is null or empty");
             if (string.IsNullOrEmpty(tokenRequestEndpointUrl)) throw new ArgumentNullException("tokenRequestEndpointUrl", "Token Request Endpoint is null or empty");
             if (!Uri.IsWellFormedUriString(tokenRequestEndpointUrl, UriKind.Absolute)) throw new FormatException("Invalid tokenRequestEndpointUrl");
+            if (string.IsNullOrEmpty(_codeVerifier)) throw new ArgumentNullException("code_verifier");
 
             var content = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("grant_type", "client_credentials"),
                     new KeyValuePair<string, string>("client_id", clientId),
-                    new KeyValuePair<string, string>("client_secret", clientSecret)
+                    new KeyValuePair<string, string>("client_secret", clientSecret),
+                    new KeyValuePair<string, string>("code_verifier", _codeVerifier)
                 });
 
             Uri uriAddress = new Uri(tokenRequestEndpointUrl);
@@ -183,6 +223,7 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(code)) throw new ArgumentNullException("code");
             if (string.IsNullOrEmpty(tokenRequestEndpointUrl)) throw new ArgumentNullException("tokenRequestEndpointUrl");
             if (!Uri.IsWellFormedUriString(tokenRequestEndpointUrl, UriKind.Absolute)) throw new FormatException("tokenRequestEndpointUrl");
+            if (string.IsNullOrEmpty(_codeChallenge)) throw new ArgumentNullException("code_challenge");
 
             var content = new FormUrlEncodedContent(new[]
                 {
@@ -190,7 +231,9 @@ namespace NetCoreForce.Client
                     new KeyValuePair<string, string>("client_id", clientId),
                     new KeyValuePair<string, string>("client_secret", clientSecret),
                     new KeyValuePair<string, string>("redirect_uri", redirectUri),
-                    new KeyValuePair<string, string>("code", code)
+                    new KeyValuePair<string, string>("code", code),
+                    new KeyValuePair<string, string>("code_challenge", _codeChallenge),
+                    new KeyValuePair<string, string>("code_challenge_method", "S256")
                 });
 
             var request = new HttpRequestMessage
@@ -315,12 +358,15 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(clientSecret)) throw new ArgumentNullException("clientSecret");
             if (string.IsNullOrEmpty(tokenRequestEndpointUrl)) throw new ArgumentNullException("tokenRequestEndpointUrl");
             if (!Uri.IsWellFormedUriString(tokenRequestEndpointUrl, UriKind.Absolute)) throw new FormatException("tokenRequestEndpointUrl");
+            if (string.IsNullOrEmpty(_codeChallenge)) throw new ArgumentNullException("code_challenge");
 
             var content = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("grant_type", "client_credentials"),
                     new KeyValuePair<string, string>("client_id", clientId),
                     new KeyValuePair<string, string>("client_secret", clientSecret),
+                    new KeyValuePair<string, string>("code_challenge", _codeChallenge),
+                    new KeyValuePair<string, string>("code_challenge_method", "S256")
                 });
 
             var request = new HttpRequestMessage

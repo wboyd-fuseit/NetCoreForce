@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 namespace NetCoreForce.Client.Models
 {
-    public class CompositeRequestResponse
+    public class CompositeResponse
     {
         [JsonProperty(PropertyName = "compositeResponse")]
-        public List<CompositeSubrequestResponse> CompositeResponse { get; set; }
+        public List<CompositeSubrequestResponse> CompositeResponseItems { get; set; }
     }
 
     public class CompositeSubrequestResponse
     {
         [JsonProperty(PropertyName = "body")]
-        public object Body { get; set; }
+        public CompositeSubrequestBodyResponse Body { get; set; }
 
         [JsonProperty(PropertyName = "httpStatusCode")]
         public int HttpStatusCode { get; set; }
@@ -30,7 +30,7 @@ namespace NetCoreForce.Client.Models
         public bool Success { get; set; }
 
         [JsonProperty(PropertyName = "errors")]
-        public List<string> Errors { get; set; }
+        public List<CompositeSubrequestError> Errors { get; set; }
     }
 
     public class CompositeSubrequestError
