@@ -158,14 +158,14 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(clientSecret)) throw new ArgumentNullException("clientSecret", "Client Secret is null or empty");
             if (string.IsNullOrEmpty(tokenRequestEndpointUrl)) throw new ArgumentNullException("tokenRequestEndpointUrl", "Token Request Endpoint is null or empty");
             if (!Uri.IsWellFormedUriString(tokenRequestEndpointUrl, UriKind.Absolute)) throw new FormatException("Invalid tokenRequestEndpointUrl");
-            if (string.IsNullOrEmpty(_codeVerifier)) throw new ArgumentNullException("code_verifier");
+            //if (string.IsNullOrEmpty(_codeVerifier)) throw new ArgumentNullException("code_verifier");
 
             var content = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("grant_type", "client_credentials"),
                     new KeyValuePair<string, string>("client_id", clientId),
-                    new KeyValuePair<string, string>("client_secret", clientSecret),
-                    new KeyValuePair<string, string>("code_verifier", _codeVerifier)
+                    new KeyValuePair<string, string>("client_secret", clientSecret)//,
+                    //new KeyValuePair<string, string>("code_verifier", _codeVerifier)
                 });
 
             Uri uriAddress = new Uri(tokenRequestEndpointUrl);
