@@ -53,7 +53,27 @@ namespace NetCoreForce.FunctionalTests
                 }
 
                 AuthenticationClient auth = new AuthenticationClient();
+
+               
                 await auth.ClientCreadentialsFlowAsync(AuthInfo.ClientId, AuthInfo.ClientSecret, AuthInfo.TokenRequestEndpoint);
+                _forceClient = new ForceClient(auth.AccessInfo.InstanceUrl, auth.ApiVersion, auth.AccessInfo.AccessToken, proxyClient);
+            }
+            return _forceClient;
+        }
+
+        public async Task<ForceClient> GetForceRefreshTokenClient(string proxyUrl = null)
+        {
+            if (_forceClient == null)
+            {
+                System.Net.Http.HttpClient proxyClient = null;
+
+                if (!string.IsNullOrEmpty(proxyUrl))
+                {
+                    proxyClient = HttpClientFactory.CreateHttpClient(true, proxyUrl);
+                }
+
+                AuthenticationClient auth = new AuthenticationClient();
+                await auth.TokenRefreshAsync(AuthInfo.RefreshToken, AuthInfo.ClientId, "", AuthInfo.TokenRequestEndpoint);
                 _forceClient = new ForceClient(auth.AccessInfo.InstanceUrl, auth.ApiVersion, auth.AccessInfo.AccessToken, proxyClient);
             }
             return _forceClient;

@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NetCoreForce.Client\NetCoreForce.Client.csproj" />
+    <ProjectReference Include="..\NetCoreForce.FunctionalTests\NetCoreForce.FunctionalTests.csproj" />
     <ProjectReference Include="..\NetCoreForce.Models\NetCoreForce.Models.csproj" />
   </ItemGroup>
 

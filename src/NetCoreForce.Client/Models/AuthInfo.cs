@@ -20,6 +20,12 @@ namespace NetCoreForce.Client.Models
         public string ClientSecret { get; set; }
 
         /// <summary>
+        /// Client Secret, a.k.a. Consumer refreshToken
+        /// </summary>
+        [JsonProperty(PropertyName = "refreshToken")]
+        public string RefreshToken { get; set; }
+
+        /// <summary>
         /// Salesforce API version
         /// </summary>
         [JsonProperty(PropertyName = "apiVersion")]

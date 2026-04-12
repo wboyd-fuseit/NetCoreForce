@@ -23,7 +23,7 @@ namespace NetCoreForce.FunctionalTests
         [Fact]
         public async Task ExternalIdInsertAndUpdate()
         {
-            ForceClient client = await forceClientFixture.GetForceClient();
+            ForceClient client = await forceClientFixture.GetForceRefreshTokenClient();
 
             //create new object
             SfAccount newAccount = new SfAccount();
